@@ -1,15 +1,21 @@
 import { posterGradient } from "@/lib/poster-gradient";
 import type { Season } from "@/types";
-import { ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronRight, Loader2, Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface SeasonCardProps {
   onEdit: (season: Season) => void;
   onDelete: (season: Season) => void;
   season: Season;
+  isDeleting?: boolean;
 }
 
-export function SeasonCard({ season, onEdit, onDelete }: SeasonCardProps) {
+export function SeasonCard({
+  season,
+  onEdit,
+  onDelete,
+  isDeleting,
+}: SeasonCardProps) {
   const navigate = useNavigate();
   const [from, to] = posterGradient(season?.tvShow?.["@key"] ?? season["@key"]);
   return (
@@ -18,8 +24,11 @@ export function SeasonCard({ season, onEdit, onDelete }: SeasonCardProps) {
       role="button"
       tabIndex={0}
       aria-label={`Ver Temporada ${season.number} (${season.year})`}
-      className="group flex items-center gap-4 p-4 rounded-xl border bg-card cursor-pointer transition-all duration-200 hover:border-secondary hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      onClick={() => navigate(`/seasons/${encodeURIComponent(season["@key"])}`)}
+      className={`group flex items-center gap-4 p-4 rounded-xl border bg-card transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isDeleting ? "pointer-events-none opacity-60" : "cursor-pointer hover:border-secondary hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)]"}`}
+      onClick={() =>
+        !isDeleting &&
+        navigate(`/seasons/${encodeURIComponent(season["@key"])}`)
+      }
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -59,13 +68,21 @@ export function SeasonCard({ season, onEdit, onDelete }: SeasonCardProps) {
         </button>
         <button
           aria-label={`Excluir Temporada ${season.number}`}
-          className="rounded-full p-1.5 bg-white/10 hover:bg-red-500/60 transition-colors"
+          disabled={isDeleting}
+          className="rounded-full p-1.5 bg-white/10 hover:bg-red-500/60 transition-colors disabled:pointer-events-none"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(season);
           }}
         >
-          <Trash2 className="h-4 w-4 text-white" aria-hidden="true" />
+          {isDeleting ? (
+            <Loader2
+              className="h-4 w-4 text-white animate-spin"
+              aria-hidden="true"
+            />
+          ) : (
+            <Trash2 className="h-4 w-4 text-white" aria-hidden="true" />
+          )}
         </button>
       </div>
 

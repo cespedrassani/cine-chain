@@ -1,6 +1,5 @@
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -8,7 +7,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -16,6 +16,7 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   title: string;
   description: string;
+  loading?: boolean;
 }
 
 export function ConfirmDialog({
@@ -24,22 +25,27 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
+  loading,
 }: ConfirmDialogProps) {
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
+    <AlertDialog open={open} onOpenChange={loading ? undefined : onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            className={buttonVariants({ variant: "destructive" })}
-            onClick={onConfirm}
-          >
-            Confirmar
-          </AlertDialogAction>
+          <AlertDialogCancel disabled={loading}>Cancelar</AlertDialogCancel>
+          <Button variant="destructive" disabled={loading} onClick={onConfirm}>
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                Excluindo...
+              </>
+            ) : (
+              "Confirmar"
+            )}
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

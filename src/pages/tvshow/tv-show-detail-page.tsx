@@ -14,14 +14,14 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { QueryError } from "@/components/shared/query-error";
 import { posterGradient } from "@/lib/poster-gradient";
-import { isReferenceError } from "@/lib/parse-api-error";
 import { cascadeDeleteSeason, cascadeDeleteTvShow } from "@/lib/cascade-delete";
-import { useDeleteTvShow, useTvShow } from "@/hooks/use-tv-shows";
-import { useSeasonsByShow, useDeleteSeason } from "@/hooks/use-seasons";
+import { useTvShow } from "@/hooks/use-tv-shows";
+import { useSeasonsByShow } from "@/hooks/use-seasons";
 import { useEpisodesBySeasons } from "@/hooks/use-episodes";
 import type { Season } from "@/types";
 import { SeasonFormModal } from "../season/components/season-form-modal";
 import { Button } from "@/components/ui/button";
+
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Badge } from "@/components/ui/badge";
 import { TvShowFormModal } from "./components/tv-show-form-modal";
@@ -60,8 +60,6 @@ export function TvShowDetailPage() {
   usePageTitle(show?.title ?? "");
   const { data: seasons = [], isLoading: seasonsLoading } =
     useSeasonsByShow(key);
-  const deleteMutation = useDeleteSeason(key);
-  const deleteTvShowMudation = useDeleteTvShow();
 
   const seasonKeys = seasons.map((s) => s["@key"]);
   const { data: allEpisodes = [] } = useEpisodesBySeasons(seasonKeys);
@@ -79,10 +77,8 @@ export function TvShowDetailPage() {
   const [editing, setEditing] = useState<Season | undefined>();
   const [formTvShowOpen, setFormTvShowOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Season | undefined>();
-  const [forceDeleteSeason, setForceDeleteSeason] = useState<
-    Season | undefined
-  >();
-  const [forceTvShowDeleteOpen, setForceTvShowDeleteOpen] = useState(false);
+  const [seasonDeleting, setSeasonDeleting] = useState(false);
+  const [tvShowDeleting, setTvShowDeleting] = useState(false);
   const [openCount, setOpenCount] = useState(0);
   const [watchlistDrawerOpen, setWatchlistDrawerOpen] = useState(false);
   const [openTvShowDelete, setOpenTvShowDelete] = useState(false);
@@ -100,55 +96,31 @@ export function TvShowDetailPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
+    setSeasonDeleting(true);
     try {
-      await deleteMutation.mutateAsync(deleteTarget["@key"]);
+      await cascadeDeleteSeason(queryClient, deleteTarget["@key"]);
       setDeleteTarget(undefined);
-    } catch (error) {
-      if (isReferenceError(error)) {
-        setForceDeleteSeason(deleteTarget);
-        setDeleteTarget(undefined);
-      }
+      toast.success("Temporada excluída com sucesso.");
+    } catch {
+      toast.error("Erro ao excluir temporada.");
+    } finally {
+      setSeasonDeleting(false);
     }
-  }
-
-  function confirmForceDeleteSeason() {
-    if (!forceDeleteSeason) return;
-    const target = forceDeleteSeason;
-    setForceDeleteSeason(undefined);
-    toast.promise(cascadeDeleteSeason(queryClient, target["@key"]), {
-      loading: "Removendo episódios e excluindo temporada...",
-      success: "Temporada excluída com sucesso.",
-      error: "Erro ao excluir temporada.",
-    });
   }
 
   async function confirmTvShowDelete() {
     if (!show) return;
+    setTvShowDeleting(true);
     try {
-      await deleteTvShowMudation.mutateAsync(show["@key"]);
+      await cascadeDeleteTvShow(queryClient, show["@key"]);
+      setOpenTvShowDelete(false);
+      toast.success("Série excluída com sucesso.");
       navigate("/tv-shows");
-    } catch (error) {
-      if (isReferenceError(error)) {
-        setOpenTvShowDelete(false);
-        setForceTvShowDeleteOpen(true);
-      }
+    } catch {
+      toast.error("Erro ao excluir série.");
+    } finally {
+      setTvShowDeleting(false);
     }
-  }
-
-  function confirmForceTvShowDelete() {
-    if (!show) return;
-    const target = show;
-    setForceTvShowDeleteOpen(false);
-    toast.promise(
-      cascadeDeleteTvShow(queryClient, target["@key"]).then(() =>
-        navigate("/tv-shows"),
-      ),
-      {
-        loading: "Removendo vínculos e excluindo série...",
-        success: "Série excluída com sucesso.",
-        error: "Erro ao excluir série.",
-      },
-    );
   }
 
   function openEditTvShow() {
@@ -337,6 +309,7 @@ export function TvShowDetailPage() {
               .sort((a, b) => a.number - b.number)
               .map((season) => (
                 <SeasonCard
+                  key={season["@key"]}
                   onDelete={setDeleteTarget}
                   onEdit={openEditSeason}
                   season={season}
@@ -365,32 +338,18 @@ export function TvShowDetailPage() {
         open={!!deleteTarget}
         onOpenChange={(open) => !open && setDeleteTarget(undefined)}
         onConfirm={confirmDelete}
+        loading={seasonDeleting}
         title="Excluir Temporada"
-        description={`Tem certeza que deseja excluir a Temporada ${deleteTarget?.number}? Esta ação não pode ser desfeita.`}
+        description={`Tem certeza que deseja excluir a Temporada ${deleteTarget?.number}? Os episódios vinculados também serão removidos.`}
       />
 
       <ConfirmDialog
         open={openTvShowDelete}
         onOpenChange={(open) => !open && setOpenTvShowDelete(false)}
         onConfirm={confirmTvShowDelete}
+        loading={tvShowDeleting}
         title="Excluir Série"
-        description={`Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`}
-      />
-
-      <ConfirmDialog
-        open={!!forceDeleteSeason}
-        onOpenChange={(open) => !open && setForceDeleteSeason(undefined)}
-        onConfirm={confirmForceDeleteSeason}
-        title="Forçar exclusão?"
-        description={`A Temporada ${forceDeleteSeason?.number} possui episódios vinculados. Ao confirmar, todos os episódios serão excluídos junto com a temporada.`}
-      />
-
-      <ConfirmDialog
-        open={forceTvShowDeleteOpen}
-        onOpenChange={(open) => !open && setForceTvShowDeleteOpen(false)}
-        onConfirm={confirmForceTvShowDelete}
-        title="Forçar exclusão?"
-        description={`"${show?.title}" possui temporadas, episódios ou watchlists vinculadas. Tudo será removido. Deseja continuar?`}
+        description={`Tem certeza que deseja excluir "${show?.title}"? Temporadas, episódios e watchlists vinculadas também serão removidos.`}
       />
 
       {show && (

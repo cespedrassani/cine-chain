@@ -5,8 +5,7 @@ import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { QueryError } from "@/components/shared/query-error";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useTvShows, useDeleteTvShow } from "@/hooks/use-tv-shows";
-import { isReferenceError } from "@/lib/parse-api-error";
+import { useTvShows } from "@/hooks/use-tv-shows";
 import { cascadeDeleteTvShow } from "@/lib/cascade-delete";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePageTitle } from "@/hooks/use-page-title";
@@ -204,7 +203,6 @@ export function TvShowsPage() {
     isLoading: heroLoading,
     isError: heroError,
   } = useTvShows();
-  const deleteMutation = useDeleteTvShow();
   const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
@@ -220,9 +218,7 @@ export function TvShowsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TvShow | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<TvShow | undefined>();
-  const [forceDeleteTarget, setForceDeleteTarget] = useState<
-    TvShow | undefined
-  >();
+  const [deleting, setDeleting] = useState(false);
 
   function openCreate() {
     setEditing(undefined);
@@ -236,26 +232,16 @@ export function TvShowsPage() {
 
   async function confirmDelete() {
     if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await deleteMutation.mutateAsync(deleteTarget["@key"]);
+      await cascadeDeleteTvShow(queryClient, deleteTarget["@key"]);
       setDeleteTarget(undefined);
-    } catch (error) {
-      if (isReferenceError(error)) {
-        setForceDeleteTarget(deleteTarget);
-        setDeleteTarget(undefined);
-      }
+      toast.success("Série excluída com sucesso.");
+    } catch {
+      toast.error("Erro ao excluir série.");
+    } finally {
+      setDeleting(false);
     }
-  }
-
-  function confirmForceDelete() {
-    if (!forceDeleteTarget) return;
-    const target = forceDeleteTarget;
-    setForceDeleteTarget(undefined);
-    toast.promise(cascadeDeleteTvShow(queryClient, target["@key"]), {
-      loading: "Removendo vínculos e excluindo série...",
-      success: "Série excluída com sucesso.",
-      error: "Erro ao excluir série.",
-    });
   }
 
   return (
@@ -352,18 +338,13 @@ export function TvShowsPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+        onOpenChange={(open) =>
+          !open && !deleting && setDeleteTarget(undefined)
+        }
         onConfirm={confirmDelete}
-        title="Excluir Show"
-        description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Esta ação não pode ser desfeita.`}
-      />
-
-      <ConfirmDialog
-        open={!!forceDeleteTarget}
-        onOpenChange={(open) => !open && setForceDeleteTarget(undefined)}
-        onConfirm={confirmForceDelete}
-        title="Forçar exclusão?"
-        description={`"${forceDeleteTarget?.title}" possui temporadas, episódios ou watchlists vinculadas. Tudo será removido. Deseja continuar?`}
+        loading={deleting}
+        title="Excluir série"
+        description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Temporadas, episódios e vínculo em listas também serão removidos.`}
       />
     </div>
   );
