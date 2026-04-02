@@ -112,7 +112,7 @@ export function AddToWatchlistDrawer({
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Adicionar à watchlist"
+      title="Adicionar à lista"
       footer={
         <div className="flex justify-end gap-2">
           <Button
@@ -171,7 +171,7 @@ export function AddToWatchlistDrawer({
                 Nenhuma lista criada
               </p>
               <p className="text-muted-foreground text-xs mt-1">
-                Crie uma lista na página de Watchlist primeiro.
+                Crie uma lista na página de listas primeiro.
               </p>
             </div>
           </div>

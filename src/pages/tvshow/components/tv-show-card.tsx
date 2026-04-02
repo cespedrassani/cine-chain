@@ -96,7 +96,7 @@ export function TvShowCard({
                 </button>
 
                 <button
-                  aria-label={`Adicionar ${show.title} à watchlist`}
+                  aria-label={`Adicionar ${show.title} à lista`}
                   className="rounded-full p-2 bg-white/10 hover:bg-primary/60 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();

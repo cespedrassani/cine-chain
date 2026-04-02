@@ -349,7 +349,7 @@ export function TvShowDetailPage() {
         onConfirm={confirmTvShowDelete}
         loading={tvShowDeleting}
         title="Excluir Série"
-        description={`Tem certeza que deseja excluir "${show?.title}"? Temporadas, episódios e watchlists vinculadas também serão removidos.`}
+        description={`Tem certeza que deseja excluir "${show?.title}"? Temporadas, episódios e vínculos em listas também serão removidos.`}
       />
 
       {show && (

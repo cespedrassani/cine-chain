@@ -344,7 +344,7 @@ export function TvShowsPage() {
         onConfirm={confirmDelete}
         loading={deleting}
         title="Excluir série"
-        description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Temporadas, episódios e vínculo em listas também serão removidos.`}
+        description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Temporadas, episódios e vínculos em listas também serão removidos.`}
       />
     </div>
   );

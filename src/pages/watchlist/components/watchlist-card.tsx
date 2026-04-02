@@ -87,7 +87,7 @@ export function WatchlistCard({
             onClick={(e) => e.stopPropagation()}
           >
             <button
-              aria-label={`Editar watchlist ${watchlist.title}`}
+              aria-label={`Editar lista ${watchlist.title}`}
               className="rounded-full p-2 bg-white/10 hover:bg-white/20 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -97,7 +97,7 @@ export function WatchlistCard({
               <Pencil className="h-5 w-5 text-white" aria-hidden="true" />
             </button>
             <button
-              aria-label={`Excluir watchlist ${watchlist.title}`}
+              aria-label={`Excluir lista ${watchlist.title}`}
               className="rounded-full p-2 bg-white/10 hover:bg-red-500/60 transition-colors"
               onClick={(e) => {
                 e.stopPropagation();

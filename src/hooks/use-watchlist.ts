@@ -24,10 +24,10 @@ export function useCreateWatchlist() {
     mutationFn: (data: WatchlistFormData) => createWatchlist(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.all });
-      toast.success("Watchlist criada com sucesso.");
+      toast.success("Lista criada com sucesso.");
     },
     onError: (error: unknown) => {
-      toast.error(parseApiError(error, "Erro ao criar watchlist."));
+      toast.error(parseApiError(error, "Erro ao criar lista."));
     },
   });
 }
@@ -55,10 +55,10 @@ export function useDeleteWatchlist() {
     mutationFn: (key: string) => deleteWatchlist(key),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.all });
-      toast.success("Watchlist removida com sucesso.");
+      toast.success("Lista removida com sucesso.");
     },
     onError: (error: unknown) => {
-      toast.error(parseApiError(error, "Erro ao remover watchlist."));
+      toast.error(parseApiError(error, "Erro ao remover Lista."));
     },
   });
 }
