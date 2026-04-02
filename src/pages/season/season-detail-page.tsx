@@ -335,8 +335,11 @@ export function SeasonDetailPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+        onOpenChange={(open) =>
+          !open && !deleteMutation.isPending && setDeleteTarget(undefined)
+        }
         onConfirm={confirmDelete}
+        loading={deleteMutation.isPending}
         title="Excluir Episódio"
         description={`Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`}
       />

@@ -44,6 +44,8 @@ export function WatchlistPage() {
     });
   }
 
+  const isDeleting = deleteMutation.isPending;
+
   return (
     <div>
       <h1 className="sr-only">Watchlist</h1>
@@ -105,8 +107,11 @@ export function WatchlistPage() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        onOpenChange={(open) => !open && setDeleteTarget(undefined)}
+        onOpenChange={(open) =>
+          !open && !isDeleting && setDeleteTarget(undefined)
+        }
         onConfirm={confirmDelete}
+        loading={isDeleting}
         title="Excluir lista"
         description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Esta ação não pode ser desfeita.`}
       />

@@ -8,6 +8,7 @@ import {
   deleteWatchlist,
 } from "@/services/watchlists";
 import type { WatchlistFormData } from "@/types";
+import { parseApiError } from "@/lib/parse-api-error";
 
 export function useWatchlist() {
   return useQuery({
@@ -25,8 +26,8 @@ export function useCreateWatchlist() {
       queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.all });
       toast.success("Watchlist criada com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao criar watchlist."));
     },
   });
 }
@@ -41,8 +42,8 @@ export function useUpdateWatchlist() {
       queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.all });
       toast.success("Lista atualizada com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao atualizar lista."));
     },
   });
 }
@@ -56,8 +57,8 @@ export function useDeleteWatchlist() {
       queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.all });
       toast.success("Watchlist removida com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao remover watchlist."));
     },
   });
 }
