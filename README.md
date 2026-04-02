@@ -2,7 +2,7 @@
 
 CineChain é uma aplicação web para gerenciar séries, temporadas, episódios e listas personalizadas. Tudo integrado à API blockchain da GoLedger.
 
-🚀 **[cinechain.vercel.app](https://cinechain.vercel.app)**
+🚀 **[CineChain](https://cine-chain.vercel.app/)**
 
 ---
 
@@ -124,7 +124,7 @@ Dois helpers estão disponíveis globalmente em todos os specs, declarados em `c
 
 ## Deploy na Vercel
 
-A aplicação está disponível em produção em **[cinechain.vercel.app](https://cinechain.vercel.app)**.
+A aplicação está disponível em produção em **[CineChain](https://cine-chain.vercel.app/)**.
 
 O deploy é simples porque a aplicação é uma SPA com arquivos estáticos e a Vercel lida muito bem com isso.
 
