@@ -82,8 +82,7 @@ export function EpisodeFormModal({
     };
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSave() {
     if (!validate()) return;
 
     const season = { "@assetType": "seasons" as const, "@key": seasonKey };
@@ -102,13 +101,37 @@ export function EpisodeFormModal({
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    handleSave();
+  }
+
+  const footer = (
+    <div className="flex justify-end gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => onOpenChange(false)}
+      >
+        Cancelar
+      </Button>
+      <Button type="button" onClick={handleSave} disabled={isPending}>
+        {isPending && (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        )}
+        {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
+      </Button>
+    </div>
+  );
+
   return (
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? "Editar Episódio" : "Novo Episódio"}
+      footer={footer}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="episode-form" onSubmit={handleSubmit} className="space-y-4">
         {!isEditing && (
           <div className="space-y-1.5">
             <Label
@@ -154,13 +177,9 @@ export function EpisodeFormModal({
           <Input
             id="episode-title"
             value={form.title}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, title: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="Pilot"
-            aria-describedby={
-              errors.title ? "episode-title-error" : undefined
-            }
+            aria-describedby={errors.title ? "episode-title-error" : undefined}
           />
           {errors.title && (
             <p
@@ -246,9 +265,7 @@ export function EpisodeFormModal({
             max={10}
             step={0.1}
             value={form.rating}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, rating: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, rating: e.target.value }))}
             placeholder="8.5"
             aria-describedby={
               errors.rating ? "episode-rating-error" : undefined
@@ -263,22 +280,6 @@ export function EpisodeFormModal({
               {errors.rating}
             </p>
           )}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending && (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            )}
-            {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
-          </Button>
         </div>
       </form>
     </FormDrawer>

@@ -12,14 +12,18 @@ import {
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { QueryError } from "@/components/shared/query-error";
 import { posterGradient } from "@/lib/poster-gradient";
-import { useSeason } from "@/hooks/use-seasons";
+import { useDeleteSeason, useSeason } from "@/hooks/use-seasons";
 import { useTvShow } from "@/hooks/use-tv-shows";
 import { useEpisodesBySeason, useDeleteEpisode } from "@/hooks/use-episodes";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Episode } from "@/types";
 import { EpisodeFormModal } from "@/pages/season/components/episode-form-modal";
 import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { SeasonFormModal } from "./components/season-form-modal";
+import { isReferenceError } from "@/lib/parse-api-error";
+import { cascadeDeleteSeason } from "@/lib/cascade-delete";
+import { toast } from "sonner";
 
 function SkeletonEpisodeRow() {
   return (
@@ -70,11 +74,15 @@ export function SeasonDetailPage() {
   const { data: episodes = [], isLoading: episodesLoading } =
     useEpisodesBySeason(key);
   const deleteMutation = useDeleteEpisode(key);
+  const deleteSeasonMutation = useDeleteSeason(key);
+  const queryClient = useQueryClient();
 
   const [formOpen, setFormOpen] = useState(false);
   const [seasonFormOpen, setSeasonFormOpen] = useState(false);
   const [editing, setEditing] = useState<Episode | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Episode | undefined>();
+  const [openDeleteSeason, setOpenDeleteSeason] = useState(false);
+  const [forceDeleteSeasonOpen, setForceDeleteSeasonOpen] = useState(false);
 
   function openCreate() {
     setEditing(undefined);
@@ -95,6 +103,34 @@ export function SeasonDetailPage() {
     deleteMutation.mutate(deleteTarget["@key"], {
       onSuccess: () => setDeleteTarget(undefined),
     });
+  }
+
+  async function confirmDeleteSeason() {
+    if (!season) return;
+    try {
+      await deleteSeasonMutation.mutateAsync(season["@key"]);
+      navigate(`/tv-shows/${encodeURIComponent(showKey)}`);
+    } catch (error) {
+      if (isReferenceError(error)) {
+        setOpenDeleteSeason(false);
+        setForceDeleteSeasonOpen(true);
+      }
+    }
+  }
+
+  function confirmForceDeleteSeason() {
+    if (!season) return;
+    setForceDeleteSeasonOpen(false);
+    toast.promise(
+      cascadeDeleteSeason(queryClient, season["@key"]).then(() =>
+        navigate(`/tv-shows/${encodeURIComponent(showKey)}`),
+      ),
+      {
+        loading: "Removendo episódios e excluindo temporada...",
+        success: "Temporada excluída com sucesso.",
+        error: "Erro ao excluir temporada.",
+      },
+    );
   }
 
   const sorted = [...episodes].sort(
@@ -138,11 +174,22 @@ export function SeasonDetailPage() {
           Voltar
         </button>
 
-        <Button variant="outline" onClick={openEditSeason} size="sm">
-          Editar Temporada
-        </Button>
+        <div className="flex items-center gap-x-2">
+          <Button variant="outline" onClick={openEditSeason} size="sm">
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Editar</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            size="sm"
+            onClick={() => setOpenDeleteSeason(true)}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Excluir</span>
+          </Button>
+        </div>
       </div>
-
       {seasonLoading ? (
         <SkeletonHeader />
       ) : (
@@ -306,7 +353,23 @@ export function SeasonDetailPage() {
         onOpenChange={(open) => !open && setDeleteTarget(undefined)}
         onConfirm={confirmDelete}
         title="Excluir Episódio"
-        description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Esta ação não pode ser desfeita.`}
+        description={`Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`}
+      />
+
+      <ConfirmDialog
+        open={openDeleteSeason}
+        onOpenChange={(open) => !open && setOpenDeleteSeason(false)}
+        onConfirm={confirmDeleteSeason}
+        title="Excluir Temporada"
+        description="Tem certeza que deseja excluir esta temporada? Esta ação não pode ser desfeita."
+      />
+
+      <ConfirmDialog
+        open={forceDeleteSeasonOpen}
+        onOpenChange={(open) => !open && setForceDeleteSeasonOpen(false)}
+        onConfirm={confirmForceDeleteSeason}
+        title="Forçar exclusão?"
+        description="Esta temporada possui episódios vinculados. Ao confirmar, todos os episódios serão excluídos junto com a temporada."
       />
     </div>
   );

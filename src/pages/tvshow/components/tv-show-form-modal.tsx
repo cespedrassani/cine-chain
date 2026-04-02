@@ -50,8 +50,7 @@ export function TvShowFormModal({
     return Object.keys(next).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSave() {
     if (!validate()) return;
     if (isEditing) {
       updateMutation.mutate(
@@ -63,13 +62,43 @@ export function TvShowFormModal({
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    handleSave();
+  }
+
+  const footer = (
+    <div className="flex justify-end gap-2">
+      <Button
+        type="button"
+        onClick={() => onOpenChange(false)}
+        variant="outline"
+        className="min-w-[100px]"
+      >
+        Cancelar
+      </Button>
+      <Button
+        type="button"
+        onClick={handleSave}
+        disabled={isPending}
+        className="min-w-[100px]"
+      >
+        {isPending && (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        )}
+        {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
+      </Button>
+    </div>
+  );
+
   return (
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? "Editar série" : "Nova série"}
+      footer={footer}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="tvshow-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
           <Label
             htmlFor="tvshow-title"
@@ -81,9 +110,7 @@ export function TvShowFormModal({
             id="tvshow-title"
             value={form.title}
             disabled={isEditing}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, title: e.target.value }))
-            }
+            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
             placeholder="Breaking Bad"
             aria-describedby={errors.title ? "tvshow-title-error" : undefined}
           />
@@ -160,30 +187,6 @@ export function TvShowFormModal({
               {errors.recommendedAge}
             </p>
           )}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            variant="outline"
-            className="min-w-[100px]"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            disabled={isPending}
-            className="min-w-[100px]"
-          >
-            {isPending && (
-              <Loader2
-                className="h-4 w-4 animate-spin"
-                aria-hidden="true"
-              />
-            )}
-            {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
-          </Button>
         </div>
       </form>
     </FormDrawer>

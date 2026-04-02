@@ -8,6 +8,7 @@ interface FormDrawerProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
 export function FormDrawer({
@@ -15,6 +16,7 @@ export function FormDrawer({
   onOpenChange,
   title,
   children,
+  footer,
 }: FormDrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -76,6 +78,12 @@ export function FormDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">{children}</div>
+
+        {footer && (
+          <div className="shrink-0 px-6 py-4 border-t border-border">
+            {footer}
+          </div>
+        )}
       </div>
     </>,
     document.body,

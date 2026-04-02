@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query-keys";
+import { parseApiError } from "@/lib/parse-api-error";
 import {
   fetchEpisodes,
   createEpisode,
@@ -48,8 +49,8 @@ export function useCreateEpisode(seasonKey: string) {
       });
       toast.success("Episódio criado com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao criar episódio."));
     },
   });
 }
@@ -73,8 +74,8 @@ export function useUpdateEpisode(seasonKey: string) {
       });
       toast.success("Episódio atualizado com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao atualizar episódio."));
     },
   });
 }
@@ -90,8 +91,8 @@ export function useDeleteEpisode(seasonKey: string) {
       });
       toast.success("Episódio removido com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao remover episódio."));
     },
   });
 }

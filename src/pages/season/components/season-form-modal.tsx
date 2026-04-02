@@ -46,8 +46,7 @@ export function SeasonFormModal({
     return Object.keys(next).length === 0;
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function handleSave() {
     if (!validate()) return;
 
     const tvShow = { "@assetType": "tvShows" as const, "@key": tvShowKey };
@@ -69,13 +68,37 @@ export function SeasonFormModal({
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    handleSave();
+  }
+
+  const footer = (
+    <div className="flex justify-end gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => onOpenChange(false)}
+      >
+        Cancelar
+      </Button>
+      <Button type="button" onClick={handleSave} disabled={isPending}>
+        {isPending && (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        )}
+        {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
+      </Button>
+    </div>
+  );
+
   return (
     <FormDrawer
       open={open}
       onOpenChange={onOpenChange}
       title={isEditing ? "Editar Temporada" : "Nova Temporada"}
+      footer={footer}
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="season-form" onSubmit={handleSubmit} className="space-y-4">
         {!isEditing && (
           <div className="space-y-1.5">
             <Label
@@ -134,22 +157,6 @@ export function SeasonFormModal({
               {errors.year}
             </p>
           )}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isPending}>
-            {isPending && (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-            )}
-            {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
-          </Button>
         </div>
       </form>
     </FormDrawer>

@@ -3,7 +3,7 @@ import { Plus, ListVideo } from "lucide-react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { QueryError } from "@/components/shared/query-error";
 import { WatchlistCard } from "@/pages/watchlist/components/watchlist-card";
-import { WatchlistFormModal } from "@/pages/watchlist/components/watchlist-form-modal";
+import { WatchlistDrawer } from "@/pages/watchlist/components/watchlist-shows-drawer";
 import { useWatchlist, useDeleteWatchlist } from "@/hooks/use-watchlist";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useTvShows } from "@/hooks/use-tv-shows";
@@ -29,16 +29,11 @@ export function WatchlistPage() {
   const deleteMutation = useDeleteWatchlist();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Watchlist | undefined>();
+  const [formOpenCount, setFormOpenCount] = useState(0);
   const [deleteTarget, setDeleteTarget] = useState<Watchlist | undefined>();
 
   function openCreate() {
-    setEditing(undefined);
-    setFormOpen(true);
-  }
-
-  function openEdit(watchlist: Watchlist) {
-    setEditing(watchlist);
+    setFormOpenCount((c) => c + 1);
     setFormOpen(true);
   }
 
@@ -80,7 +75,7 @@ export function WatchlistPage() {
           <div className="text-center">
             <p className="text-foreground font-medium">Nenhuma lista criada</p>
             <p className="text-muted-foreground text-sm mt-1">
-              Crie uma lista para organizar seus shows favoritos.
+              Crie uma lista para organizar suas séries favoritos.
             </p>
           </div>
           <Button size="sm" onClick={openCreate}>
@@ -95,19 +90,17 @@ export function WatchlistPage() {
               key={watchlist["@key"]}
               watchlist={watchlist}
               shows={shows}
-              onEdit={openEdit}
               onDelete={setDeleteTarget}
             />
           ))}
         </div>
       )}
 
-      <WatchlistFormModal
-        key={editing?.["@key"] ?? "new"}
+      <WatchlistDrawer
+        key={formOpenCount}
         open={formOpen}
         onOpenChange={setFormOpen}
         allShows={shows}
-        initialData={editing}
       />
 
       <ConfirmDialog

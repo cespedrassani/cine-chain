@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query-keys";
+import { parseApiError, isReferenceError } from "@/lib/parse-api-error";
 import {
   readSeason,
   fetchSeasons,
@@ -46,8 +47,8 @@ export function useCreateSeason(tvShowKey: string) {
       });
       toast.success("Temporada criada com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao criar temporada."));
     },
   });
 }
@@ -74,8 +75,8 @@ export function useUpdateSeason(tvShowKey: string) {
       });
       toast.success("Temporada atualizada com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      toast.error(parseApiError(error, "Erro ao atualizar temporada."));
     },
   });
 }
@@ -91,8 +92,10 @@ export function useDeleteSeason(tvShowKey: string) {
       });
       toast.success("Temporada removida com sucesso.");
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
+    onError: (error: unknown) => {
+      if (!isReferenceError(error)) {
+        toast.error(parseApiError(error, "Erro ao remover temporada."));
+      }
     },
   });
 }

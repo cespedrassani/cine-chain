@@ -1,18 +1,22 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Plus,
   Clapperboard,
   Star,
-  ChevronRight,
   Pencil,
   Trash2,
+  Bookmark,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { QueryError } from "@/components/shared/query-error";
 import { posterGradient } from "@/lib/poster-gradient";
-import { useTvShow } from "@/hooks/use-tv-shows";
+import { isReferenceError } from "@/lib/parse-api-error";
+import { cascadeDeleteSeason, cascadeDeleteTvShow } from "@/lib/cascade-delete";
+import { useDeleteTvShow, useTvShow } from "@/hooks/use-tv-shows";
 import { useSeasonsByShow, useDeleteSeason } from "@/hooks/use-seasons";
 import { useEpisodesBySeasons } from "@/hooks/use-episodes";
 import type { Season } from "@/types";
@@ -21,6 +25,8 @@ import { Button } from "@/components/ui/button";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Badge } from "@/components/ui/badge";
 import { TvShowFormModal } from "./components/tv-show-form-modal";
+import { AddToWatchlistDrawer } from "./components/add-to-watchlist-drawer";
+import { SeasonCard } from "../season/components/season-card";
 
 function SkeletonHeader() {
   return (
@@ -55,6 +61,7 @@ export function TvShowDetailPage() {
   const { data: seasons = [], isLoading: seasonsLoading } =
     useSeasonsByShow(key);
   const deleteMutation = useDeleteSeason(key);
+  const deleteTvShowMudation = useDeleteTvShow();
 
   const seasonKeys = seasons.map((s) => s["@key"]);
   const { data: allEpisodes = [] } = useEpisodesBySeasons(seasonKeys);
@@ -72,6 +79,14 @@ export function TvShowDetailPage() {
   const [editing, setEditing] = useState<Season | undefined>();
   const [formTvShowOpen, setFormTvShowOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Season | undefined>();
+  const [forceDeleteSeason, setForceDeleteSeason] = useState<
+    Season | undefined
+  >();
+  const [forceTvShowDeleteOpen, setForceTvShowDeleteOpen] = useState(false);
+  const [openCount, setOpenCount] = useState(0);
+  const [watchlistDrawerOpen, setWatchlistDrawerOpen] = useState(false);
+  const [openTvShowDelete, setOpenTvShowDelete] = useState(false);
+  const queryClient = useQueryClient();
 
   function openCreate() {
     setEditing(undefined);
@@ -83,15 +98,66 @@ export function TvShowDetailPage() {
     setFormOpen(true);
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
-    deleteMutation.mutate(deleteTarget["@key"], {
-      onSuccess: () => setDeleteTarget(undefined),
+    try {
+      await deleteMutation.mutateAsync(deleteTarget["@key"]);
+      setDeleteTarget(undefined);
+    } catch (error) {
+      if (isReferenceError(error)) {
+        setForceDeleteSeason(deleteTarget);
+        setDeleteTarget(undefined);
+      }
+    }
+  }
+
+  function confirmForceDeleteSeason() {
+    if (!forceDeleteSeason) return;
+    const target = forceDeleteSeason;
+    setForceDeleteSeason(undefined);
+    toast.promise(cascadeDeleteSeason(queryClient, target["@key"]), {
+      loading: "Removendo episódios e excluindo temporada...",
+      success: "Temporada excluída com sucesso.",
+      error: "Erro ao excluir temporada.",
     });
+  }
+
+  async function confirmTvShowDelete() {
+    if (!show) return;
+    try {
+      await deleteTvShowMudation.mutateAsync(show["@key"]);
+      navigate("/tv-shows");
+    } catch (error) {
+      if (isReferenceError(error)) {
+        setOpenTvShowDelete(false);
+        setForceTvShowDeleteOpen(true);
+      }
+    }
+  }
+
+  function confirmForceTvShowDelete() {
+    if (!show) return;
+    const target = show;
+    setForceTvShowDeleteOpen(false);
+    toast.promise(
+      cascadeDeleteTvShow(queryClient, target["@key"]).then(() =>
+        navigate("/tv-shows"),
+      ),
+      {
+        loading: "Removendo vínculos e excluindo série...",
+        success: "Série excluída com sucesso.",
+        error: "Erro ao excluir série.",
+      },
+    );
   }
 
   function openEditTvShow() {
     setFormTvShowOpen(true);
+  }
+
+  function openWatchlistDrawer() {
+    setWatchlistDrawerOpen(true);
+    setOpenCount((c) => c + 1);
   }
 
   const [from, to] = posterGradient(show?.title ?? "");
@@ -132,9 +198,25 @@ export function TvShowDetailPage() {
           Voltar
         </button>
 
-        <Button variant="outline" onClick={openEditTvShow} size="sm">
-          Editar Série
-        </Button>
+        <div className="flex items-center gap-x-2">
+          <Button variant="outline" onClick={openWatchlistDrawer} size="sm">
+            <Bookmark className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Adicionar</span>
+          </Button>
+          <Button variant="outline" onClick={openEditTvShow} size="sm">
+            <Pencil className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Editar</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="border-destructive hover:bg-destructive text-destructive hover:text-destructive-foreground"
+            onClick={() => setOpenTvShowDelete(true)}
+            size="sm"
+          >
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Excluir</span>
+          </Button>
+        </div>
       </div>
 
       {showLoading ? (
@@ -170,19 +252,19 @@ export function TvShowDetailPage() {
               </div>
 
               <div
-                className="flex flex-col justify-center px-5 sm:px-8 max-w-lg"
+                className="flex flex-col justify-center px-5 sm:px-8 max-w-lg min-w-0 overflow-hidden"
                 aria-live="polite"
                 aria-atomic="true"
               >
-                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                  <h2 className="text-white text-xl sm:text-3xl font-bold leading-tight line-clamp-1">
+                <div className="flex items-center gap-3 mb-2 sm:mb-3 overflow-hidden">
+                  <h2 className="text-white text-xl sm:text-3xl font-bold leading-tight line-clamp-1 min-w-0">
                     {show?.title}
                   </h2>
-                  <span className="bg-black/40 text-muted-foreground text-[10px] px-2 py-1 rounded-lg border border-border-subtle">
+                  <span className="bg-black/40 text-muted-foreground text-[10px] px-2 py-1 rounded-lg border border-border-subtle shrink-0 whitespace-nowrap">
                     Idade +{show?.recommendedAge}
                   </span>
                 </div>
-                <p className="hidden sm:block text-muted-foreground text-sm line-clamp-2 mb-4">
+                <p className="hidden sm:block text-muted-foreground text-sm overflow-y-auto max-h-16 mb-4 pr-1">
                   {show?.description}
                 </p>
                 <div className="flex items-center gap-x-4">
@@ -219,7 +301,7 @@ export function TvShowDetailPage() {
           </h2>
           <Button onClick={openCreate} size="sm">
             <Plus className="h-4 w-4" aria-hidden="true" />
-            Nova Temporada
+            <span className="hidden sm:inline">Nova Temporada</span>
           </Button>
         </div>
 
@@ -254,81 +336,11 @@ export function TvShowDetailPage() {
               .slice()
               .sort((a, b) => a.number - b.number)
               .map((season) => (
-                <div
-                  key={season["@key"]}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Ver Temporada ${season.number} (${season.year})`}
-                  className="group flex items-center gap-4 p-4 rounded-xl border bg-card cursor-pointer transition-all duration-200 hover:border-secondary hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(0,0,0,0.6)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  onClick={() =>
-                    navigate(`/seasons/${encodeURIComponent(season["@key"])}`)
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      navigate(
-                        `/seasons/${encodeURIComponent(season["@key"])}`,
-                      );
-                    }
-                  }}
-                >
-                  <div
-                    className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-                    style={{
-                      background: `linear-gradient(135deg, ${from}, ${to})`,
-                    }}
-                  >
-                    <span className="text-primary font-bold text-sm">
-                      T{season.number}
-                    </span>
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-foreground font-bold text-sm">
-                      Temporada {season.number}
-                    </p>
-                    <p className="text-muted-foreground text-xs mt-0.5">
-                      {season.year}
-                    </p>
-                  </div>
-
-                  <div
-                    className="flex items-center gap-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <button
-                      aria-label={`Editar Temporada ${season.number}`}
-                      className="rounded-full p-1.5 bg-white/10 hover:bg-white/20 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditSeason(season);
-                      }}
-                    >
-                      <Pencil
-                        className="h-4 w-4 text-white"
-                        aria-hidden="true"
-                      />
-                    </button>
-                    <button
-                      aria-label={`Excluir Temporada ${season.number}`}
-                      className="rounded-full p-1.5 bg-white/10 hover:bg-red-500/60 transition-colors"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget(season);
-                      }}
-                    >
-                      <Trash2
-                        className="h-4 w-4 text-white"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </div>
-
-                  <ChevronRight
-                    className="h-4 w-4 text-muted-foreground shrink-0"
-                    aria-hidden="true"
-                  />
-                </div>
+                <SeasonCard
+                  onDelete={setDeleteTarget}
+                  onEdit={openEditSeason}
+                  season={season}
+                />
               ))}
           </div>
         )}
@@ -356,6 +368,39 @@ export function TvShowDetailPage() {
         title="Excluir Temporada"
         description={`Tem certeza que deseja excluir a Temporada ${deleteTarget?.number}? Esta ação não pode ser desfeita.`}
       />
+
+      <ConfirmDialog
+        open={openTvShowDelete}
+        onOpenChange={(open) => !open && setOpenTvShowDelete(false)}
+        onConfirm={confirmTvShowDelete}
+        title="Excluir Série"
+        description={`Tem certeza que deseja excluir? Esta ação não pode ser desfeita.`}
+      />
+
+      <ConfirmDialog
+        open={!!forceDeleteSeason}
+        onOpenChange={(open) => !open && setForceDeleteSeason(undefined)}
+        onConfirm={confirmForceDeleteSeason}
+        title="Forçar exclusão?"
+        description={`A Temporada ${forceDeleteSeason?.number} possui episódios vinculados. Ao confirmar, todos os episódios serão excluídos junto com a temporada.`}
+      />
+
+      <ConfirmDialog
+        open={forceTvShowDeleteOpen}
+        onOpenChange={(open) => !open && setForceTvShowDeleteOpen(false)}
+        onConfirm={confirmForceTvShowDelete}
+        title="Forçar exclusão?"
+        description={`"${show?.title}" possui temporadas, episódios ou watchlists vinculadas. Tudo será removido. Deseja continuar?`}
+      />
+
+      {show && (
+        <AddToWatchlistDrawer
+          key={openCount}
+          show={show}
+          open={watchlistDrawerOpen}
+          onOpenChange={setWatchlistDrawerOpen}
+        />
+      )}
     </div>
   );
 }

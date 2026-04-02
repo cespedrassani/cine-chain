@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Tv, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { QueryError } from "@/components/shared/query-error";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useTvShows, useDeleteTvShow } from "@/hooks/use-tv-shows";
+import { isReferenceError } from "@/lib/parse-api-error";
+import { cascadeDeleteTvShow } from "@/lib/cascade-delete";
 import { useDebounce } from "@/hooks/use-debounce";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { posterGradient } from "@/lib/poster-gradient";
@@ -105,22 +109,22 @@ function HeroCarousel({ shows }: { shows: TvShow[] }) {
                   </div>
 
                   <div
-                    className="flex flex-col justify-center px-5 sm:px-8 max-w-lg"
+                    className="flex flex-col justify-center px-5 sm:px-8 max-w-lg min-w-0 overflow-hidden"
                     aria-live="polite"
                     aria-atomic="true"
                   >
                     <p className="text-primary text-xs font-semibold uppercase mb-2 sm:mb-3 tracking-widest">
                       Em destaque
                     </p>
-                    <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                      <h2 className="text-white text-xl sm:text-3xl font-bold leading-tight line-clamp-1">
+                    <div className="flex items-center gap-3 mb-2 sm:mb-3 overflow-hidden">
+                      <h2 className="text-white text-xl sm:text-3xl font-bold leading-tight line-clamp-1 min-w-0">
                         {show.title}
                       </h2>
-                      <span className="bg-black/40 text-muted-foreground text-[10px] px-2 py-1 rounded-lg border border-border-subtle">
+                      <span className="bg-black/40 text-muted-foreground text-[10px] px-2 py-1 rounded-lg border border-border-subtle shrink-0 whitespace-nowrap">
                         Idade +{show.recommendedAge}
                       </span>
                     </div>
-                    <p className="hidden sm:block text-muted-foreground text-sm line-clamp-2 mb-4">
+                    <p className="hidden sm:block text-muted-foreground text-sm overflow-y-auto max-h-16 mb-4 pr-1">
                       {show.description}
                     </p>
                     <div className="flex items-center">
@@ -201,6 +205,7 @@ export function TvShowsPage() {
     isError: heroError,
   } = useTvShows();
   const deleteMutation = useDeleteTvShow();
+  const queryClient = useQueryClient();
 
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
@@ -215,6 +220,9 @@ export function TvShowsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TvShow | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<TvShow | undefined>();
+  const [forceDeleteTarget, setForceDeleteTarget] = useState<
+    TvShow | undefined
+  >();
 
   function openCreate() {
     setEditing(undefined);
@@ -226,10 +234,27 @@ export function TvShowsPage() {
     setFormOpen(true);
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!deleteTarget) return;
-    deleteMutation.mutate(deleteTarget["@key"], {
-      onSuccess: () => setDeleteTarget(undefined),
+    try {
+      await deleteMutation.mutateAsync(deleteTarget["@key"]);
+      setDeleteTarget(undefined);
+    } catch (error) {
+      if (isReferenceError(error)) {
+        setForceDeleteTarget(deleteTarget);
+        setDeleteTarget(undefined);
+      }
+    }
+  }
+
+  function confirmForceDelete() {
+    if (!forceDeleteTarget) return;
+    const target = forceDeleteTarget;
+    setForceDeleteTarget(undefined);
+    toast.promise(cascadeDeleteTvShow(queryClient, target["@key"]), {
+      loading: "Removendo vínculos e excluindo série...",
+      success: "Série excluída com sucesso.",
+      error: "Erro ao excluir série.",
     });
   }
 
@@ -331,6 +356,14 @@ export function TvShowsPage() {
         onConfirm={confirmDelete}
         title="Excluir Show"
         description={`Tem certeza que deseja excluir "${deleteTarget?.title}"? Esta ação não pode ser desfeita.`}
+      />
+
+      <ConfirmDialog
+        open={!!forceDeleteTarget}
+        onOpenChange={(open) => !open && setForceDeleteTarget(undefined)}
+        onConfirm={confirmForceDelete}
+        title="Forçar exclusão?"
+        description={`"${forceDeleteTarget?.title}" possui temporadas, episódios ou watchlists vinculadas. Tudo será removido. Deseja continuar?`}
       />
     </div>
   );

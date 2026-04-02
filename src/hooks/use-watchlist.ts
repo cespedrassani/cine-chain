@@ -39,7 +39,7 @@ export function useUpdateWatchlist() {
       updateWatchlist(key, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.watchlist.all });
-      toast.success("Watchlist atualizada com sucesso.");
+      toast.success("Lista atualizada com sucesso.");
     },
     onError: (error: Error) => {
       toast.error(error.message);
