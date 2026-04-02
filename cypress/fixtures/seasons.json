@@ -1,0 +1,14 @@
+{
+  "result": [
+    {
+      "@assetType": "seasons",
+      "@key": "seasons:breaking-bad-s1",
+      "number": 1,
+      "year": 2008,
+      "tvShow": {
+        "@assetType": "tvShows",
+        "@key": "tvShows:breaking-bad"
+      }
+    }
+  ]
+}

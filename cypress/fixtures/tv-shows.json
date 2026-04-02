@@ -1,0 +1,11 @@
+{
+  "result": [
+    {
+      "@assetType": "tvShows",
+      "@key": "tvShows:breaking-bad",
+      "title": "Breaking Bad",
+      "description": "A chemistry teacher turned drug lord.",
+      "recommendedAge": 18
+    }
+  ]
+}

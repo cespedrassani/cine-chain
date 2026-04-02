@@ -1,0 +1,17 @@
+{
+  "result": [
+    {
+      "@assetType": "episodes",
+      "@key": "episodes:bb-s1e1",
+      "episodeNumber": 1,
+      "title": "Pilot",
+      "description": "Walter White begins his transformation.",
+      "releaseDate": "2008-01-20T00:00:00Z",
+      "rating": 9.0,
+      "season": {
+        "@assetType": "seasons",
+        "@key": "seasons:breaking-bad-s1"
+      }
+    }
+  ]
+}

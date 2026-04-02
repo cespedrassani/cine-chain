@@ -1,0 +1,16 @@
+{
+  "result": [
+    {
+      "@assetType": "watchlist",
+      "@key": "watchlist:my-list",
+      "title": "Minha Lista",
+      "description": "Shows favoritos",
+      "tvShows": [
+        {
+          "@assetType": "tvShows",
+          "@key": "tvShows:breaking-bad"
+        }
+      ]
+    }
+  ]
+}
