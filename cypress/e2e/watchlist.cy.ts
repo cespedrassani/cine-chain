@@ -16,12 +16,14 @@ describe("Watchlist page", () => {
   });
 
   it("shows the show count badge", () => {
-    cy.contains("1 show").should("be.visible");
+    cy.contains("1 série").should("be.visible");
   });
 
   it("expands the card to show linked shows when clicked", () => {
     cy.contains("Minha Lista").click();
-    cy.contains("Breaking Bad").should("be.visible");
+    cy.get('[role="dialog"]:not([aria-hidden="true"])')
+      .should("be.visible")
+      .and("contain.text", "Breaking Bad");
   });
 
   it("shows the nova-lista button", () => {
@@ -30,7 +32,8 @@ describe("Watchlist page", () => {
 
   it("opens the create watchlist drawer", () => {
     cy.contains("button", "Nova Lista").click();
-    cy.get('[role="dialog"]').should("be.visible");
-    cy.contains('[role="dialog"]', "Nova lista").should("be.visible");
+    cy.get('[role="dialog"]:not([aria-hidden="true"])')
+      .should("be.visible")
+      .and("contain.text", "Nova lista");
   });
 });
