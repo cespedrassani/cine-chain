@@ -171,7 +171,7 @@ export function WatchlistDrawer({
             Cancelar
           </Button>
           <Button type="button" onClick={handleSave} disabled={isPending}>
-            {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
+            {isPending ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       }

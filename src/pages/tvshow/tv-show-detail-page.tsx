@@ -240,10 +240,10 @@ export function TvShowDetailPage() {
                   {show?.description}
                 </p>
                 <div className="flex items-center gap-x-4">
-                  {allEpisodes && allEpisodes.length > 0 && (
+                  {seasons.length > 0 && (
                     <Badge>
-                      {allEpisodes.length} temporada
-                      {allEpisodes.length > 1 && `s`}
+                      {seasons.length} temporada
+                      {seasons.length > 1 && `s`}
                     </Badge>
                   )}
                   {avgRating !== null && (

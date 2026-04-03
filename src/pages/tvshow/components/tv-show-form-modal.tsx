@@ -1,28 +1,19 @@
-import { useState } from "react";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { FormDrawer } from "@/components/ui/form-drawer";
 import { Label } from "@/components/ui/label";
 import { useCreateTvShow, useUpdateTvShow } from "@/hooks/use-tv-shows";
-import type { TvShow, TvShowFormData } from "@/types";
+import type { TvShow } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { tvShowSchema, type TvShowSchema } from "@/lib/schemas";
 
 interface TvShowFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: TvShow;
-}
-
-const empty: TvShowFormData = { title: "", description: "", recommendedAge: 0 };
-
-function initForm(initialData?: TvShow): TvShowFormData {
-  if (!initialData) return empty;
-  return {
-    title: initialData.title,
-    description: initialData.description,
-    recommendedAge: initialData.recommendedAge,
-  };
 }
 
 export function TvShowFormModal({
@@ -31,40 +22,33 @@ export function TvShowFormModal({
   initialData,
 }: TvShowFormModalProps) {
   const isEditing = !!initialData;
-  const [form, setForm] = useState<TvShowFormData>(() => initForm(initialData));
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof TvShowFormData, string>>
-  >({});
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<TvShowSchema>({
+    resolver: zodResolver(tvShowSchema) as Resolver<TvShowSchema>,
+    defaultValues: {
+      title: initialData?.title ?? "",
+      description: initialData?.description ?? "",
+      recommendedAge: initialData?.recommendedAge ?? 0,
+    },
+  });
 
   const createMutation = useCreateTvShow();
   const updateMutation = useUpdateTvShow();
   const isPending = createMutation.isPending || updateMutation.isPending;
 
-  function validate(): boolean {
-    const next: typeof errors = {};
-    if (!form.title.trim()) next.title = "Título é obrigatório";
-    if (!form.description.trim()) next.description = "Descrição é obrigatória";
-    if (!form.recommendedAge && form.recommendedAge !== 0)
-      next.recommendedAge = "Idade é obrigatória";
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  function handleSave() {
-    if (!validate()) return;
+  function onSubmit(data: TvShowSchema) {
     if (isEditing) {
       updateMutation.mutate(
-        { key: initialData["@key"], data: form },
+        { key: initialData["@key"], data },
         { onSuccess: () => onOpenChange(false) },
       );
     } else {
-      createMutation.mutate(form, { onSuccess: () => onOpenChange(false) });
+      createMutation.mutate(data, { onSuccess: () => onOpenChange(false) });
     }
-  }
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    handleSave();
   }
 
   const footer = (
@@ -79,14 +63,14 @@ export function TvShowFormModal({
       </Button>
       <Button
         type="button"
-        onClick={handleSave}
+        onClick={handleSubmit(onSubmit)}
         disabled={isPending}
         className="min-w-[100px]"
       >
         {isPending && (
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
         )}
-        {isPending ? "Salvando..." : isEditing ? "Salvar" : "Criar"}
+        {isPending ? "Salvando..." : "Salvar"}
       </Button>
     </div>
   );
@@ -98,7 +82,11 @@ export function TvShowFormModal({
       title={isEditing ? "Editar série" : "Nova série"}
       footer={footer}
     >
-      <form id="tvshow-form" onSubmit={handleSubmit} className="space-y-4">
+      <form
+        id="tvshow-form"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-4"
+      >
         <div className="space-y-1.5">
           <Label
             htmlFor="tvshow-title"
@@ -108,11 +96,11 @@ export function TvShowFormModal({
           </Label>
           <Input
             id="tvshow-title"
-            value={form.title}
-            disabled={isEditing}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+            readOnly={isEditing}
             placeholder="Breaking Bad"
             aria-describedby={errors.title ? "tvshow-title-error" : undefined}
+            className={isEditing ? "cursor-not-allowed opacity-50" : undefined}
+            {...register("title")}
           />
           {errors.title && (
             <p
@@ -120,7 +108,7 @@ export function TvShowFormModal({
               role="alert"
               className="text-xs text-destructive"
             >
-              {errors.title}
+              {errors.title.message}
             </p>
           )}
         </div>
@@ -134,16 +122,13 @@ export function TvShowFormModal({
           </Label>
           <Textarea
             id="tvshow-description"
-            value={form.description}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
-            }
-            placeholder="A high school chemistry teacher..."
+            placeholder="Era uma vez..."
             rows={3}
             className="resize-none"
             aria-describedby={
               errors.description ? "tvshow-description-error" : undefined
             }
+            {...register("description")}
           />
           {errors.description && (
             <p
@@ -151,7 +136,7 @@ export function TvShowFormModal({
               role="alert"
               className="text-xs text-destructive"
             >
-              {errors.description}
+              {errors.description.message}
             </p>
           )}
         </div>
@@ -167,16 +152,11 @@ export function TvShowFormModal({
             id="tvshow-age"
             type="number"
             min={0}
-            value={form.recommendedAge}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                recommendedAge: Number(e.target.value),
-              }))
-            }
+            max={99}
             aria-describedby={
               errors.recommendedAge ? "tvshow-age-error" : undefined
             }
+            {...register("recommendedAge")}
           />
           {errors.recommendedAge && (
             <p
@@ -184,7 +164,7 @@ export function TvShowFormModal({
               role="alert"
               className="text-xs text-destructive"
             >
-              {errors.recommendedAge}
+              {errors.recommendedAge.message}
             </p>
           )}
         </div>

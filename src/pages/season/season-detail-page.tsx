@@ -65,8 +65,8 @@ export function SeasonDetailPage() {
     isError: seasonError,
     refetch: refetchSeason,
   } = useSeason(key);
-  const showKey = season?.tvShow["@key"] ?? "";
-  const { data: show } = useTvShow(showKey);
+  const tvShowKey = season?.tvShow["@key"] ?? "";
+  const { data: show } = useTvShow(tvShowKey);
   usePageTitle(
     show && season ? `${show.title} — Temporada ${season.number}` : "",
   );
@@ -110,7 +110,7 @@ export function SeasonDetailPage() {
       await cascadeDeleteSeason(queryClient, season["@key"]);
       setOpenDeleteSeason(false);
       toast.success("Temporada excluída com sucesso.");
-      navigate(`/tv-shows/${encodeURIComponent(showKey)}`);
+      navigate(`/tv-shows/${encodeURIComponent(tvShowKey)}`);
     } catch {
       toast.error("Erro ao excluir temporada.");
     } finally {
@@ -144,8 +144,6 @@ export function SeasonDetailPage() {
       </div>
     );
   }
-
-  const tvShowKey = season?.tvShow["@key"] ?? "";
 
   return (
     <div className="space-y-8">
