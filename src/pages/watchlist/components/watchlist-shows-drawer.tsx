@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Check, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm, type Resolver } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Check, Loader2, Search } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { FormDrawer } from "@/components/ui/form-drawer";
 import { Label } from "@/components/ui/label";
@@ -8,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useCreateWatchlist, useUpdateWatchlist } from "@/hooks/use-watchlist";
 import { posterGradient } from "@/lib/poster-gradient";
+import { watchlistSchema, type WatchlistSchema } from "@/lib/schemas";
 import type { Watchlist, TvShow } from "@/types";
 
 interface WatchlistDrawerProps {
@@ -25,13 +28,36 @@ export function WatchlistDrawer({
 }: WatchlistDrawerProps) {
   const isEditing = !!watchlist;
 
-  const [title, setTitle] = useState(watchlist?.title ?? "");
-  const [description, setDescription] = useState(watchlist?.description ?? "");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<WatchlistSchema>({
+    resolver: zodResolver(watchlistSchema) as Resolver<WatchlistSchema>,
+    defaultValues: {
+      title: watchlist?.title ?? "",
+      description: watchlist?.description ?? "",
+    },
+  });
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        title: watchlist?.title ?? "",
+        description: watchlist?.description ?? "",
+      });
+      setSelectedKeys(
+        new Set((watchlist?.tvShows ?? []).map((ref) => ref["@key"])),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(
     () => new Set((watchlist?.tvShows ?? []).map((ref) => ref["@key"])),
   );
   const [search, setSearch] = useState("");
-  const [titleError, setTitleError] = useState("");
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -51,26 +77,15 @@ export function WatchlistDrawer({
     });
   }
 
-  function validate(): boolean {
-    if (!title.trim()) {
-      setTitleError("Título é obrigatório");
-      return false;
-    }
-    setTitleError("");
-    return true;
-  }
-
-  function handleSave() {
-    if (!validate()) return;
-
+  function onSubmit(formData: WatchlistSchema) {
     const tvShows = Array.from(selectedKeys).map((key) => ({
       "@assetType": "tvShows" as const,
       "@key": key,
     }));
 
     const data = {
-      title: title.trim(),
-      ...(description.trim() ? { description: description.trim() } : {}),
+      title: formData.title.trim(),
+      description: formData.description?.trim() ?? "",
       tvShows,
     };
 
@@ -170,55 +185,65 @@ export function WatchlistDrawer({
           >
             Cancelar
           </Button>
-          <Button type="button" onClick={handleSave} disabled={isPending}>
+          <Button
+            type="button"
+            onClick={handleSubmit(onSubmit)}
+            disabled={isPending}
+          >
+            {isPending && (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            )}
             {isPending ? "Salvando..." : "Salvar"}
           </Button>
         </div>
       }
     >
-      <div className="space-y-5">
+      <form
+        id="watchlist-form"
+        onSubmit={handleSubmit(onSubmit)}
+        className="space-y-5"
+      >
         <div className="space-y-1.5">
           <Label
-            htmlFor="drawer-title"
+            htmlFor="watchlist-title"
             className="text-muted-foreground text-xs uppercase tracking-wide"
           >
             Título
           </Label>
           <Input
-            id="drawer-title"
-            value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (titleError) setTitleError("");
-            }}
+            id="watchlist-title"
             placeholder="Nome da lista"
-            aria-describedby={titleError ? "drawer-title-error" : undefined}
+            readOnly={isEditing}
+            className={isEditing ? "opacity-50 cursor-not-allowed" : ""}
+            aria-describedby={
+              errors.title ? "watchlist-title-error" : undefined
+            }
+            {...register("title")}
           />
-          {titleError && (
+          {errors.title && (
             <p
-              id="drawer-title-error"
+              id="watchlist-title-error"
               role="alert"
               className="text-xs text-destructive"
             >
-              {titleError}
+              {errors.title.message}
             </p>
           )}
         </div>
 
         <div className="space-y-1.5">
           <Label
-            htmlFor="drawer-description"
+            htmlFor="watchlist-description"
             className="text-muted-foreground text-xs uppercase tracking-wide"
           >
             Descrição
           </Label>
           <Textarea
-            id="drawer-description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+            id="watchlist-description"
             rows={2}
             className="resize-none"
             placeholder="Descrição da lista (opcional)"
+            {...register("description")}
           />
         </div>
 
@@ -279,7 +304,7 @@ export function WatchlistDrawer({
             )}
           </div>
         )}
-      </div>
+      </form>
     </FormDrawer>
   );
 }

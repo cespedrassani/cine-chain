@@ -264,6 +264,11 @@ export function SeasonDetailPage() {
                   <p className="text-foreground font-bold text-sm truncate">
                     {episode.title}
                   </p>
+                  {episode.description && (
+                    <p className="text-muted-foreground text-xs mt-0.5 truncate">
+                      {episode.description}
+                    </p>
+                  )}
                   <p className="text-muted-foreground text-xs mt-0.5">
                     {formatDate(episode.releaseDate)}
                   </p>

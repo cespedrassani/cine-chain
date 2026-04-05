@@ -53,6 +53,12 @@ export const episodeSchema = z.object({
   ]),
 });
 
+export const watchlistSchema = z.object({
+  title: z.string().min(1, "Título é obrigatório"),
+  description: z.string().optional(),
+});
+
 export type TvShowSchema = z.infer<typeof tvShowSchema>;
 export type SeasonSchema = z.infer<typeof seasonSchema>;
 export type EpisodeSchema = z.infer<typeof episodeSchema>;
+export type WatchlistSchema = z.infer<typeof watchlistSchema>;
